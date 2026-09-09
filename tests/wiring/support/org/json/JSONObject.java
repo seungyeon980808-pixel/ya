@@ -1,0 +1,1 @@
+package org.json; import java.util.*; public class JSONObject { private final Map<String,Object> m=new LinkedHashMap<>(); public JSONObject put(String k,Object v){m.put(k,v);return this;} public String toString(){return m.toString();} }

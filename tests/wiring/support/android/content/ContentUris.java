@@ -1,0 +1,1 @@
+package android.content; import android.net.Uri; public final class ContentUris { public static Uri withAppendedId(Uri base,long id){return Uri.parse(base.toString()+"/"+id);} public static long parseId(Uri uri){return Long.parseLong(uri.getLastPathSegment());} }

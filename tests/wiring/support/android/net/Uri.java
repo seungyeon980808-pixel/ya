@@ -1,0 +1,2 @@
+package android.net;
+public final class Uri { private final String value; private Uri(String value){this.value=value;} public static Uri parse(String value){return new Uri(value);} public String getLastPathSegment(){int q=value.indexOf('?'); String v=q<0?value:value.substring(0,q); int p=v.lastIndexOf('/'); return p<0?v:v.substring(p+1);} @Override public String toString(){return value;} @Override public boolean equals(Object o){return o instanceof Uri && value.equals(o.toString());} @Override public int hashCode(){return value.hashCode();} }

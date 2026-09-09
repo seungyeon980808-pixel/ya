@@ -1,0 +1,39 @@
+# Generated outputs
+build/
+release/
+apk-input/dex/
+tests/wiring/.build/
+*.apk
+*.aab
+*.dex
+*.class
+*.zip
+
+# Local configuration, signing and credentials
+.env
+.env.*
+!.env.example
+local.properties
+secrets.properties
+*.jks
+*.keystore
+*.pem
+*.p12
+*password*
+*.token
+.config/
+.keys/
+
+# Personal data and diagnostics
+*.wav
+*.mp3
+*.m4a
+*.db
+*.db-*
+*.sqlite*
+*.log
+captures/
+evidence/
+backups/
+.private-backups/
+.DS_Store

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources package="com.malhaedwo.pttprobe" id="0x7f">
+    <public type="string" name="accessibility_description" id="0x7f010000" />
+    <public type="xml" name="accessibility_service_config" id="0x7f020000" />
+</resources>

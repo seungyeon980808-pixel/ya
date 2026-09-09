@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">PTT 모드가 켜진 동안 음량 아래 버튼의 누름과 해제를 감지해 녹음을 시작하고 종료합니다.</string>
+</resources>
