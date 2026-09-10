@@ -23,13 +23,13 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 
-/** Creates and verifies the immutable DB-only snapshot required before the v5 open. */
+/** Creates and verifies immutable DB-only snapshots before the first database open. */
 final class BackupBeforeMigration {
     static final String BACKUP_ROOT = "migration-backup";
     static final String SNAPSHOT_NAME = "before-v5";
+    static final String RELEASE_SNAPSHOT_NAME = "before-app-0.8.8";
     static final String MANIFEST_NAME = "manifest.properties";
 
-    private static final String TEMP_NAME = ".before-v5.tmp";
     private static final String DB_NAME = "malhaedwo.db";
     private static final String STATE_SNAPSHOT = "SNAPSHOT";
     private static final String STATE_NO_DATABASE = "NO_DATABASE";
@@ -39,19 +39,28 @@ final class BackupBeforeMigration {
     private BackupBeforeMigration() {}
 
     static void ensure(Context context) {
+        ensureSnapshot(context, SNAPSHOT_NAME);
+    }
+
+    /** A separate immutable snapshot of the DB present when this release first opens it. */
+    static void ensureCurrentRelease(Context context) {
+        ensureSnapshot(context, RELEASE_SNAPSHOT_NAME);
+    }
+
+    private static void ensureSnapshot(Context context, String snapshotName) {
         try {
-            ensureChecked(context);
+            ensureChecked(context, snapshotName);
         } catch (Exception e) {
             if (e instanceof BackupException) throw (BackupException) e;
             throw new BackupException("Database migration backup failed; database was not opened", e);
         }
     }
 
-    private static void ensureChecked(Context context) throws IOException {
+    private static void ensureChecked(Context context, String snapshotName) throws IOException {
         if (context == null) throw new BackupException("Database migration backup failed: Context is null");
         File filesDir = requireDirectory(context.getFilesDir(), "private files directory");
         File privateParent = child(filesDir, BACKUP_ROOT);
-        File privateFinal = child(privateParent, SNAPSHOT_NAME);
+        File privateFinal = child(privateParent, snapshotName);
 
         Snapshot privateSnapshot;
         if (privateFinal.exists()) {
@@ -75,7 +84,7 @@ final class BackupBeforeMigration {
         }
         externalFiles = requireDirectory(externalFiles, "app-specific external files directory");
         File externalParent = child(externalFiles, BACKUP_ROOT);
-        File externalFinal = child(externalParent, SNAPSHOT_NAME);
+        File externalFinal = child(externalParent, snapshotName);
         if (externalFinal.exists()) {
             Snapshot externalSnapshot = verifySnapshot(externalFinal);
             requireMatchingManifests(privateSnapshot, externalSnapshot);
@@ -158,7 +167,7 @@ final class BackupBeforeMigration {
         if (destination.exists()) {
             throw new BackupException("Database migration backup failed: completed snapshot appeared concurrently");
         }
-        File temp = child(parent, TEMP_NAME);
+        File temp = child(parent, "." + destination.getName() + ".tmp");
         if (temp.exists()) deleteTemporaryTree(temp);
         if (!temp.mkdir()) throw new BackupException("Database migration backup failed: cannot create temporary snapshot directory");
         return temp;

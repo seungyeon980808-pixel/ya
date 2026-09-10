@@ -24,6 +24,7 @@ public final class CaptureDatabase extends SQLiteOpenHelper {
         if (current == null) {
             Context appContext = context.getApplicationContext();
             BackupBeforeMigration.ensure(appContext);
+            BackupBeforeMigration.ensureCurrentRelease(appContext);
             instance = current = new CaptureDatabase(appContext);
         }
         return current;
