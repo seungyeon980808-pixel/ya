@@ -32,6 +32,16 @@ describe("Ya approval desk", () => {
     expect(root.textContent).toContain("[가상] 연구실 안전 교육");
   });
 
+  it("renders the document-tray hierarchy without decorative dashboard copy", () => {
+    const root = setup();
+    expect(root.querySelector(".sidebar")).not.toBeNull();
+    expect(root.querySelector(".inbox")).not.toBeNull();
+    expect(root.querySelector(".detail")).not.toBeNull();
+    expect(root.querySelector(".queue-item.is-selected")?.textContent).toContain("연구실 안전 교육");
+    expect(root.textContent).not.toContain("VOICE APPROVAL DESK");
+    expect(root.textContent).not.toContain("YA DESKTOP");
+  });
+
   it("filters the list by status", () => {
     const root = setup();
     root.querySelector<HTMLButtonElement>('[data-filter="APPROVED"]')!.click();

@@ -1,6 +1,6 @@
 [package]
 name = "ya-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Ya Korean voice approval desk companion"
 authors = ["Ya"]
 edition = "2021"

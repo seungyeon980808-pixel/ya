@@ -13,16 +13,17 @@ const capability = JSON.parse(await text("src-tauri/capabilities/default.json"))
 const domain = await text("src/domain.ts");
 const fixtures = await text("src/fixtures.ts");
 const ui = await text("src/ui.ts");
+const styles = await text("src/styles.css");
 const commands = await text("src-tauri/src/commands.rs");
 const rustModels = await text("src-tauri/src/models.rs");
 const rustCache = await text("src-tauri/src/cache.rs");
 const rustFixtures = await text("src-tauri/src/fixtures.rs");
 const workflow = await text("../.github/workflows/windows-desktop.yml");
 
-check(packageJson.version === "0.1.0", "package version must be 0.1.0");
+check(packageJson.version === "0.1.1", "package version must be 0.1.1");
 check(tauri.productName === "Ya Desktop", "Tauri productName must be Ya Desktop");
 check(tauri.identifier === "com.malhaedwo.ya.desktop", "unexpected Tauri identifier");
-check(tauri.version === "0.1.0", "Tauri version must be 0.1.0");
+check(tauri.version === "0.1.1", "Tauri version must be 0.1.1");
 check(JSON.stringify(tauri.bundle.targets) === JSON.stringify(["nsis", "msi"]), "NSIS and MSI targets required");
 check(tauri.bundle.windows.nsis.installMode === "currentUser", "NSIS must install per-user");
 check(tauri.bundle.windows.webviewInstallMode.type === "downloadBootstrapper", "WebView2 bootstrapper required");
@@ -43,6 +44,11 @@ check(rustCache.includes("cache_roundtrip_preserves_envelope"), "native cache ro
 check(rustCache.includes("corrupt_cache_is_quarantined_and_recovers_empty"), "native corrupt recovery test required");
 check(fixtures.includes("가상") && fixtures.includes("인공 데이터"), "fixtures must be clearly artificial");
 check(ui.includes("WRITE_DISABLED_REASON") && ui.includes("disabled"), "write controls must be disabled with a reason");
+check(styles.includes('"Segoe UI Variable"') && styles.includes('"Malgun Gothic"'), "Windows and Korean legible font stack required");
+check(styles.includes(":focus-visible"), "visible keyboard focus treatment required");
+check(styles.includes("prefers-reduced-motion"), "reduced motion support required");
+check(!/gradient\s*\(|box-shadow\s*:|Consolas|text-transform\s*:\s*uppercase/i.test(styles), "generic decorative UI treatment detected");
+check(!ui.includes("VOICE APPROVAL DESK") && !ui.includes("YA DESKTOP"), "ornamental English labels must not return");
 check(commands.includes('state: "unconfigured"') && commands.includes("can_write: false"), "native connection status must be unconfigured and read-only");
 for (const command of ["load_local_cache", "store_local_cache", "bootstrap_fixture"]) {
   check(commands.includes(command), `missing native command: ${command}`);
@@ -85,4 +91,4 @@ if (failures.length) {
   console.error("Acceptance check failed:\n" + failures.map((failure) => `- ${failure}`).join("\n"));
   process.exit(1);
 }
-console.log("Acceptance check passed: safe local Ya Desktop v0.1.0 source contract verified.");
+console.log("Acceptance check passed: safe local Ya Desktop v0.1.1 source contract verified.");
