@@ -1,0 +1,29 @@
+{
+  "name": "ya-windows-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/run-tool.mjs vite",
+    "build": "tsc --noEmit && node scripts/run-tool.mjs vite build",
+    "test": "node scripts/run-tool.mjs vitest run",
+    "test:watch": "node scripts/run-tool.mjs vitest",
+    "acceptance": "node scripts/check.mjs",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.8.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.4",
+    "esbuild-wasm": "^0.25.12",
+    "jsdom": "^26.1.0",
+    "rollup": "npm:@rollup/wasm-node@^4.52.3",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
