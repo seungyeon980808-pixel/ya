@@ -64,10 +64,6 @@ public final class InboxActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(BG);
-        getWindow().setNavigationBarColor(BG);
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         buildUi();
         TranscriptionManager.retryPending(this);
     }
@@ -161,7 +157,7 @@ public final class InboxActivity extends Activity {
         listRoot = new LinearLayout(this);
         listRoot.setOrientation(LinearLayout.VERTICAL);
         root.addView(listRoot);
-        setContentView(scroll);
+        SystemBarInsets.setContentView(this, scroll, BG);
     }
 
     private void refresh() {

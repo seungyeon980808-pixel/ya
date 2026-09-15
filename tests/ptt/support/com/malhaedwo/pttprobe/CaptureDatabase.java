@@ -1,0 +1,1 @@
+package com.malhaedwo.pttprobe;import android.content.Context;import java.io.File;public class CaptureDatabase {public static CaptureDatabase get(Context c){throw new AssertionError("restore touched DB");}public long insertAudio(File f,String s,long l,int i){throw new AssertionError();}}

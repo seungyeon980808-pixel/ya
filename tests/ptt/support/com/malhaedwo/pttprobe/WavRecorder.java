@@ -1,0 +1,1 @@
+package com.malhaedwo.pttprobe;import java.io.File;public class WavRecorder {public static int starts;public WavRecorder(File f){}public long start(){starts++;return 1;}public void abort(){}public Result stop(){throw new UnsupportedOperationException();}public static class Result {public File file;public long durationMs;public int peakAmplitude;}}

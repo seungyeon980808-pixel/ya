@@ -1,0 +1,1 @@
+package com.malhaedwo.pttprobe;import android.content.Context;public class ScreenOffVolumeBridge {public static boolean enabled;public ScreenOffVolumeBridge(Context c){}public void setEnabled(boolean b){enabled=b;}public void release(){enabled=false;}}

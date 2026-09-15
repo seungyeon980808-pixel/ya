@@ -1,0 +1,1 @@
+package android;public class R {public static class drawable {public static int ic_btn_speak_now=1,ic_media_pause=2;}}

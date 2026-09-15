@@ -84,33 +84,62 @@ public final class PttService extends Service {
             disarmInternal();
             return START_NOT_STICKY;
         }
-        if (!ACTION_ARM.equals(action)) {
-            stopSelf();
+        // Starts never opt in. Even a previously queued ARM must obey a later stop.
+        if ((intent != null && !ACTION_ARM.equals(action)) || !PttReadiness.isEnabled(this)) {
+            stopReadiness();
             return START_NOT_STICKY;
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            PttStore.markError(this, "service", "마이크 권한 없음");
-            stopSelf();
+            restoreFailed("마이크 권한 필요 · 앱에서 복구해주세요");
             return START_NOT_STICKY;
         }
-        armed = true;
-        PowerManager powerManager = getSystemService(PowerManager.class);
-        if (screenOffBridge != null) screenOffBridge.setEnabled(!powerManager.isInteractive());
-        startForegroundCompat(buildNotification("PTT 준비됨, 음량 아래 버튼을 누르고 말하세요", false));
-        PttStore.append(this, "PTT_ARMED", "service", "foreground_service_started");
-        publish("PTT 준비됨");
-        return START_NOT_STICKY;
+        try {
+            startForegroundCompat(buildNotification("PTT 대기 유지 · 녹음은 버튼을 누를 때만 시작", false));
+            armed = true; // Never report ready before Android accepts foreground promotion.
+            PowerManager powerManager = getSystemService(PowerManager.class);
+            if (screenOffBridge != null) screenOffBridge.setEnabled(!powerManager.isInteractive());
+            PttStore.append(this, "PTT_ARMED", "service", "foreground_service_started");
+            publish("PTT 대기 유지 중");
+            return START_STICKY;
+        } catch (RuntimeException error) {
+            restoreFailed("대기 복구 필요 · 앱을 열어주세요: " + safeMessage(error));
+            return START_NOT_STICKY;
+        }
     }
 
     public static void arm(Context context) {
-        Intent intent = new Intent(context, PttService.class).setAction(ACTION_ARM);
-        context.startForegroundService(intent);
+        if (!PttReadiness.setEnabled(context, true)) {
+            PttStore.markError(context, "service", "PTT 대기 설정 저장 실패");
+            return;
+        }
+        restoreIfEnabled(context);
+    }
+
+    /** Called only at eligible lifecycle opportunities, never by boot/polling. */
+    public static void restoreIfEnabled(Context context) {
+        if (!PttReadiness.isEnabled(context) || isArmed()) return;
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            PttStore.markError(context, "service", "대기 복구 필요 · 마이크 권한 없음");
+            return;
+        }
+        try {
+            context.startForegroundService(new Intent(context, PttService.class).setAction(ACTION_ARM));
+        } catch (RuntimeException error) {
+            PttStore.markError(context, "service", "대기 복구 필요 · 앱을 열어주세요: " + safeMessage(error));
+        }
     }
 
     public static void disarm(Context context) {
+        if (!PttReadiness.setEnabled(context, false)) {
+            PttStore.markError(context, "service", "PTT 종료 설정 저장 실패 · 다시 종료해주세요");
+        }
         PttService service = instance;
         if (service != null) {
-            service.main.post(service::disarmInternal);
+            // Close the press gate immediately, before queued input/restore callbacks.
+            service.armed = false;
+            service.main.post(service::stopReadiness);
+        } else {
+            context.stopService(new Intent(context, PttService.class));
         }
     }
 
@@ -139,7 +168,7 @@ public final class PttService extends Service {
     }
 
     private void startRecording(long keyEventElapsed, String source) {
-        if (!armed || recording) return;
+        if (!armed || !PttReadiness.isEnabled(this) || recording) return;
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             fail(source, "마이크 권한이 없습니다");
             return;
@@ -199,10 +228,23 @@ public final class PttService extends Service {
     }
 
     private void disarmInternal() {
-        if (recording) stopRecording(false, "PTT 종료");
+        if (!PttReadiness.setEnabled(this, false)) {
+            PttStore.markError(this, "service", "PTT 종료 설정 저장 실패 · 다시 종료해주세요");
+        }
+        stopReadiness();
+    }
+
+    private void restoreFailed(String message) {
+        PttStore.markError(this, "service", message);
+        stopReadiness();
+        publish(message);
+    }
+
+    private void stopReadiness() {
         armed = false;
+        if (recording) stopRecording(false, "PTT 종료");
         if (screenOffBridge != null) screenOffBridge.setEnabled(false);
-        PttStore.append(this, "PTT_DISARMED", "service", "user_requested");
+        PttStore.append(this, "PTT_NOT_READY", "service", "readiness_stopped");
         publish("PTT 대기 종료");
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
@@ -226,7 +268,7 @@ public final class PttService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, 10, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Intent stop = new Intent(this, PttService.class).setAction(ACTION_DISARM);
-        PendingIntent stopIntent = PendingIntent.getForegroundService(this, 11, stop,
+        PendingIntent stopIntent = PendingIntent.getService(this, 11, stop,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)

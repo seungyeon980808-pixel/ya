@@ -1,0 +1,1 @@
+package android.view.accessibility;public class AccessibilityEvent {public static final int TYPES_ALL_MASK=-1;}

@@ -1,0 +1,1 @@
+package com.malhaedwo.pttprobe;import android.content.Context;import java.io.File;public class TranscriptionManager {public static void enqueue(Context c,long id,File f){throw new AssertionError("restore transcribed");}}

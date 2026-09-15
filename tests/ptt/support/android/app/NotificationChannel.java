@@ -1,0 +1,1 @@
+package android.app;public class NotificationChannel {public NotificationChannel(String id,String s,int i){} public void setDescription(String s){} public void setSound(Object a,Object b){} }

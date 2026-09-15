@@ -16,6 +16,7 @@ public final class VolumeKeyService extends AccessibilityService {
             setServiceInfo(info);
         }
         PttStore.append(this, "ACCESSIBILITY_CONNECTED", "hardware", "key_filter_ready");
+        PttService.restoreIfEnabled(this);
     }
 
     @Override protected boolean onKeyEvent(KeyEvent event) {

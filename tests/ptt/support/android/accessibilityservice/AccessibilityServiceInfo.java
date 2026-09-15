@@ -1,0 +1,1 @@
+package android.accessibilityservice;public class AccessibilityServiceInfo {public static final int FEEDBACK_GENERIC=1,FLAG_REQUEST_FILTER_KEY_EVENTS=32;public int eventTypes,feedbackType,flags;}

@@ -1,0 +1,1 @@
+package com.malhaedwo.pttprobe;import android.content.Context;public class Haptics {public static void warning(Context c){}public static void start(Context c){}public static void stop(Context c){}public static void error(Context c){}}

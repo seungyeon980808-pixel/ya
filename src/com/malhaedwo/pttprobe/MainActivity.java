@@ -78,10 +78,6 @@ public final class MainActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setTitle("말해둬");
-        getWindow().setStatusBarColor(BG);
-        getWindow().setNavigationBarColor(BG);
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         buildUi();
         requestNeededPermissions();
         TranscriptionManager.retryPending(this);
@@ -106,7 +102,6 @@ public final class MainActivity extends Activity {
     private void buildUi() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setClipToPadding(false);
         scroll.setBackgroundColor(BG);
 
         LinearLayout root = new LinearLayout(this);
@@ -178,7 +173,7 @@ public final class MainActivity extends Activity {
         disarmButton = outlinedButton("PTT 끄기", DANGER, SURFACE);
         disarmButton.setTextSize(13);
         disarmButton.setVisibility(View.GONE);
-        disarmButton.setOnClickListener(v -> toggleArmState());
+        disarmButton.setOnClickListener(v -> { PttService.disarm(this); refresh(); });
         root.addView(disarmButton);
 
         LinearLayout inboxRow = rowCard();
@@ -215,7 +210,7 @@ public final class MainActivity extends Activity {
         TextView note = text("원본 녹음과 정리 결과는 앱 내부에 보존됩니다. Google 연결을 선택하면 본인 소유의 비공개 Sheet와 Drive에만 동기화합니다.", 11, MUTED);
         note.setPadding(dp(13), dp(12), dp(13), dp(18));
         settingsBody.addView(note);
-        setContentView(scroll);
+        SystemBarInsets.setContentView(this, scroll, BG);
     }
 
     private void addSettingsActions() {
@@ -299,7 +294,7 @@ public final class MainActivity extends Activity {
     }
 
     private void toggleArmState() {
-        if (!PttService.isArmed()) {
+        if (!PttReadiness.isEnabled(this) || !PttService.isArmed()) {
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 requestNeededPermissions();
                 toast("먼저 마이크 권한을 허용해주세요");
@@ -349,6 +344,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        PttService.restoreIfEnabled(this);
         refresh();
         runLocalReconciliation();
     }
@@ -420,7 +416,8 @@ public final class MainActivity extends Activity {
         permissionButton.setVisibility(allPermissionsGranted ? View.GONE : View.VISIBLE);
         // Alarm readiness is intentionally separate from PTT readiness; settings may be changed outside the app.
         armButton.setVisibility(armed ? View.GONE : View.VISIBLE);
-        disarmButton.setVisibility(armed ? View.VISIBLE : View.GONE);
+        armButton.setText(PttReadiness.isEnabled(this) ? "PTT 복구" : "PTT 켜기");
+        disarmButton.setVisibility(PttReadiness.isEnabled(this) ? View.VISIBLE : View.GONE);
         disarmButton.setEnabled(!recording);
         disarmButton.setAlpha(recording ? 0.45f : 1f);
         holdButton.setEnabled(armed);
@@ -461,11 +458,15 @@ public final class MainActivity extends Activity {
     }
 
     private String readinessHeadline() {
-        if (!hasMicrophonePermission()) return "기록을 시작하기 전에 마이크 권한을 확인해주세요.";
-        if (!isAccessibilityEnabled()) return "화면 기록은 준비됐어요. 물리 버튼을 쓰려면 접근성을 켜주세요.";
+        if (!hasMicrophonePermission()) return PttReadiness.isEnabled(this)
+                ? "대기 복구 필요 · 설정은 유지돼요. 먼저 마이크 권한을 허용해주세요."
+                : "기록을 시작하기 전에 마이크 권한을 확인해주세요.";
         if (PttService.isRecording()) return "기록하고 있어요. 말을 마치면 화면에서 손을 떼세요.";
-        if (PttService.isArmed()) return "사용 가능 · 음량 아래 버튼이 연결되어 있습니다.";
-        return "PTT가 꺼져 있습니다. 사용하려면 PTT 켜기를 눌러주세요.";
+        if (PttService.isArmed()) return isAccessibilityEnabled()
+                ? "PTT 대기 유지 중 · 상시 알림 표시 · 화면 꺼짐 물리 버튼은 접근성과 시스템 상태에 의존해요."
+                : "화면 PTT 대기 중 · 물리 버튼은 접근성을 켜야 해요. 상시 알림이 유지됩니다.";
+        if (PttReadiness.isEnabled(this)) return "대기 복구 필요 · 설정은 유지돼요. 마이크 권한 확인 후 PTT 복구를 눌러주세요. 시스템 제한으로 중단될 수 있어요.";
+        return "한 번 PTT 켜기를 누르면 대기 설정을 기억해요. 상시 알림이 유지되며, 종료하면 자동 복구도 꺼져요.";
     }
 
     private String compactSyncText() {
@@ -512,7 +513,7 @@ public final class MainActivity extends Activity {
                 (reminder.message.isEmpty() ? "" : " (" + reminder.message + ")") +
                 "\n정확한 알람 특별 접근: " + (exactAlarm ? "허용" : "정시 알림 불가") +
                 "\n물리 버튼 접근성: " + yesNo(accessibility) +
-                "\nPTT 서비스: " + (PttService.isArmed() ? "준비됨" : "꺼짐") +
+                "\nPTT 서비스: " + (PttService.isArmed() ? "대기 유지 중" : PttReadiness.isEnabled(this) ? "복구 필요 (설정 유지)" : "꺼짐") +
                 "\n현재 녹음: " + (PttService.isRecording() ? "진행 중" : "아님") +
                 "\n음성 정리: " + (TranscriptionManager.isBusy() ? "처리 중" : "대기");
     }
