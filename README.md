@@ -1,6 +1,6 @@
 # Ya · 야
 
-옆 사람에게 “야” 하고 말을 건네듯, 음성으로 기록하고 확인한 뒤 일정으로 연결하는 개인용 Android 앱입니다.
+옆 사람에게 “야” 하고 말을 건네듯, 음성으로 기록하고 확인한 뒤 일정으로 연결하는 개인용 Android 앱과 Windows 검토 데스크톱입니다.
 
 ## 구성
 
@@ -8,23 +8,30 @@
 - 승인함에서 검토·편집·승인 후 일정 알림 생성
 - 명시적으로 선택한 Calendar에만 파생 일정 생성
 - Google Sheets/Drive 동기화와 Apps Script 웹 승인함
+- Windows Tauri 읽기 전용 승인 문서함과 로컬 fixture/cache 계약
 - package: `com.malhaedwo.pttprobe` (기존 업데이트 호환을 위해 유지)
 
 기존 코드의 화면·내부 명칭에는 이전 이름 “말해둬”가 남아 있습니다. 저장소/제품 이름은 Ya이며, 이번 공개용 복사본은 기능 전체의 이름 변경 작업과 구분합니다.
 
 ## 현재 상태
 
-0.8.8 후보 소스입니다. 삭제·완료·수락된 편집 시 이미 게시된 알림을 회수하고, 일반 주기 동기화에서는 정상 알림을 유지하도록 수정했습니다. 호스트 테스트와 Android 전체 컴파일을 검증하지만, 이 후보의 실제 기기 설치·업데이트 보존·알림 회수 검증은 아직 필요합니다.
+이 브랜치는 다른 세션이나 Codex에서 바로 이어갈 수 있도록 다음 기준선을 한곳에 모읍니다.
 
-- 호스트 회귀: 45개 시나리오 / 376 assertions (운영 Java 클래스 + Android stubs)
-- 실제 소리·진동·heads-up, 자연 절전, 재부팅, 네트워크 장애 복구는 별도 실기기 시험 대상
-- 현재 정시 알림은 SCHEDULE만 지원합니다. TODO 정시 알림 지원을 주장하지 않습니다.
-- 과거 버전에서 DB 행이 이미 제거된 고아 알림은 업데이트만으로 자동 수거하지 않습니다.
-- 표준 Gradle 프로젝트가 아니라 기존 수동 Java/D8 빌드 구조입니다.
+- Android `0.9.0` / versionCode `25`: 지속 PTT opt-in, sticky service recreation, 시스템 바 inset 수정
+- Windows Desktop `0.1.1`: Tauri 기반 읽기 전용 승인 문서함, 로컬 fixture/cache, 23열 Items 계약
+- Android wiring 45 cases / 376 assertions, PTT 39 assertions, system inset 28 assertions
+- Desktop UI test 5개, TypeScript/Vite build, acceptance 검사
+- Windows Rust/NSIS/MSI는 GitHub Actions에서 통과했지만 실제 Windows 설치·제거·배율 검증은 별도 게이트
+
+상세 인계는 `CODEX_HANDOFF.md`, 현재 검증 범위는 `CURRENT_RELEASE.md`, 에이전트 작업 규칙은 `AGENTS.md`를 먼저 읽으세요.
+
+### Android 0.9.0 주의점
+
+사용자의 PTT 선택은 보존하지만 명시적 종료는 자동 복구도 끕니다. `START_STICKY`는 시스템의 재생성 시도를 요청할 뿐 무중단을 보장하지 않습니다. 재부팅·강제 중지 후 microphone foreground service 자동 복구는 보장하지 않습니다. 표준 Gradle 프로젝트가 아니라 기존 수동 Java/D8 빌드 구조입니다.
 
 ### DB 최초 접근 보호
 
-기존 `before-v5` 사본을 보존하면서 `before-app-0.8.8`에 현재 DB와 존재하는 WAL/SHM/journal을 별도 복사·검증합니다. 복사나 검증에 실패하면 DB helper를 생성하지 않습니다. 이는 APK 교체 전 백업이 아니라 새 코드의 최초 DB 접근 전 보호이며, 실제 기기 SQLite 무결성은 별도 확인해야 합니다.
+기존 `before-v5` 사본을 보존하면서 `before-app-0.9.0`에 현재 DB와 존재하는 WAL/SHM/journal을 별도 복사·검증합니다. 복사나 검증에 실패하면 DB helper를 생성하지 않습니다. 이는 APK 교체 전 백업이 아니라 새 코드의 최초 DB 접근 전 보호입니다.
 
 ## 공개용 설정
 
@@ -49,6 +56,8 @@ JDK 11 이상이 필요합니다. 이 테스트는 Android 기기 시험의 대�
 ```sh
 export JAVA_HOME=/path/to/jdk
 bash tests/wiring/run.sh
+bash tests/insets/run.sh
+bash tests/ptt/run.sh
 ```
 
 ## 수동 APK 빌드
@@ -73,7 +82,24 @@ export PTT_SIGNING_HOME=/private/path/to/signing
 bash build.sh
 ```
 
-서명 디렉터리는 `ptt-probe.jks`(alias `pttprobe`)와 비밀번호 파일 `password`를 로컬에서 제공해야 합니다. 기본 위치는 `~/.config/ya/signing`입니다. 기존 설치 위 업데이트에는 반드시 원래 서명키가 필요합니다. 빌드는 키를 자동 생성하거나 교체하지 않습니다. 출력은 `build/malhaedwo-ptt-probe-0.8.8.apk`이며 서명 검증·Manifest 검사·ZIP 무결성·SHA-256 확인을 실행합니다.
+서명 디렉터리는 `ptt-probe.jks`(alias `pttprobe`)와 비밀번호 파일 `password`를 로컬에서 제공해야 합니다. 기본 위치는 `~/.config/ya/signing`입니다. 기존 설치 위 업데이트에는 반드시 원래 서명키가 필요합니다. 빌드는 키를 자동 생성하거나 교체하지 않습니다. 출력은 `build/malhaedwo-ptt-probe-0.9.0.apk`이며 서명 검증·Manifest 검사·ZIP 무결성·SHA-256 확인을 실행합니다.
+
+## Windows Desktop
+
+```sh
+cd desktop
+npm ci
+npm test
+npm run build
+npm run acceptance
+cargo test --locked --manifest-path src-tauri/Cargo.toml
+```
+
+실제 Google OAuth와 운영 데이터 연결은 아직 구현하지 않았습니다. 화면은 fixture/cache 상태를 명확히 표시하며, 운영 데이터에 쓰지 않습니다. Windows 설치본은 CI artifact로만 생성하고 Git에는 커밋하지 않습니다.
+
+## 예정: LLM Wiki 연동
+
+아직 특정 Wiki 서비스나 API를 선택하지 않았습니다. 첫 구현은 Desktop의 읽기 전용 adapter, 로컬 cache, fixture fallback으로 제한합니다. 승인된 문서만 검색 대상으로 삼고 DB·WAV·OAuth token·개인 로그는 전송하지 않습니다. 자세한 경계는 `CODEX_HANDOFF.md`에 기록했습니다.
 
 ## 데이터 안전 원칙
 
